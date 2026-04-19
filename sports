@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Spread Value Model</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Spread Model" />
+  <meta name="theme-color" content="#080c14" id="themeColor" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23080c14'/%3E%3Ctext x='90' y='115' font-size='80' text-anchor='middle'%3E🏀%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #080c14;
+      --surface: #0f1623;
+      --surface2: #172030;
+      --border: #1c2d45;
+      --text: #e6edf8;
+      --muted: #4a6580;
+      --label: #7a9ab8;
+      --accent: #00d4ff;
+      --green: #00e676;
+      --red: #ff4545;
+      --yellow: #ffc107;
+      --sport-color: #00d4ff;
+      --sport-glow: rgba(0,212,255,0.15);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overscroll-behavior: none;
+    }
+
+    .sport-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: calc(var(--safe-top) + 10px) 16px 10px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .sport-bar::-webkit-scrollbar { display: none; }
+
+    .sport-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .sport-pill.active {
+      background: var(--sport-glow);
+      border-color: var(--sport-color);
+      color: var(--sport-color);
+      box-shadow: 0 0 16px var(--sport-glow);
+    }
+
+    .app {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 24px 16px calc(var(--safe-bottom) + 40px);
+    }
+
+    .hero { margin-bottom: 28px; }
+
+    .hero-sport {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 56px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -1px;
+      color: var(--sport-color);
+      text-shadow: 0 0 40px var(--sport-glow);
+      transition: color 0.3s, text-shadow 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hero-emoji { font-size: 44px; }
+
+    .hero-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--sport-color);
+      border: 1px solid var(--sport-color);
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-bottom: 8px;
+      opacity: 0.8;
+      transition: color 0.3s, border-color 0.3s;
+    }
+
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 12px;
+      gap: 3px;
+      border: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 9px 4px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.18s;
+    }
+
+    .tab.active {
+      background: var(--surface2);
+      color: var(--text);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      color: var(--sport-color);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::after {
+      content: '';
+      flex: 1; height: 1px;
+      background: var(--border);
+    }
+
+    .field-group { margin-bottom: 13px; }
+
+    .field-label {
+      font-size: 11px;
+      color: var(--label);
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .input-wrap { position: relative; }
+
+    .input-unit {
+      position: absolute;
+      right: 11px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      pointer-events: none;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 40px 11px 14px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+
+    input[type="number"]:focus { border-color: var(--sport-color); }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .toggle-row { display: flex; gap: 5px; }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 9px 2px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--label);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.15s;
+    }
+
+    .toggle-btn.active {
+      background: var(--sport-glow);
+      border-color: var(--sport-color);
+      color: var(--sport-color);
+    }
+
+    .btn-calc {
+      width: 100%;
+      padding: 15px;
+      background: var(--sport-color);
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Barlow Condensed', sans-serif;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+      margin-top: 4px;
+      box-shadow: 0 4px 20px var(--sport-glow);
+    }
+
+    .btn-calc:active { transform: scale(0.98); }
+
+    .results { display: none; }
+    .results.visible { display: block; animation: fadeUp 0.35s ease; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .verdict-banner {
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .verdict-banner.value   { background: rgba(0,230,118,0.08);  border: 1px solid rgba(0,230,118,0.35); }
+    .verdict-banner.novalue { background: rgba(255,69,69,0.08);   border: 1px solid rgba(255,69,69,0.35); }
+    .verdict-banner.neutral { background: rgba(255,193,7,0.07);   border: 1px solid rgba(255,193,7,0.3); }
+
+    .verdict-eye {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px; letter-spacing: 2px;
+      text-transform: uppercase; opacity: 0.55;
+      margin-bottom: 5px;
+    }
+
+    .verdict-main {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 22px; font-weight: 700;
+    }
+
+    .verdict-banner.value   .verdict-main { color: var(--green); }
+    .verdict-banner.novalue .verdict-main { color: var(--red); }
+    .verdict-banner.neutral .verdict-main { color: var(--yellow); }
+
+    .verdict-edge {
+      font-family: 'Space Mono', monospace;
+      font-size: 28px; font-weight: 700;
+      text-align: right; flex-shrink: 0;
+    }
+
+    .verdict-edge-lbl { font-size: 10px; color: var(--muted); text-align: right; margin-top: 2px; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+
+    .stat-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 10px;
+    }
+
+    .stat-val {
+      font-family: 'Space Mono', monospace;
+      font-size: 17px; font-weight: 700;
+      color: var(--sport-color);
+      margin-bottom: 4px;
+    }
+
+    .stat-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; line-height: 1.3; }
+
+    .breakdown { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    .breakdown th {
+      text-align: left; padding: 6px 8px;
+      color: var(--muted); font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase;
+    }
+
+    .breakdown td { padding: 10px 8px; border-bottom: 1px solid rgba(28,45,69,0.6); vertical-align: middle; }
+    .breakdown tr:last-child td { border-bottom: none; }
+    .mono { font-family: 'Space Mono', monospace; font-size: 12px; }
+
+    .bar-wrap { background: var(--bg); border-radius: 4px; height: 5px; overflow: hidden; width: 72px; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--sport-color); transition: width 0.7s cubic-bezier(.4,0,.2,1), background 0.3s; }
+    .prob-row { display: flex; align-items: center; gap: 8px; }
+
+    .sport-context {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--sport-color);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: var(--label);
+      line-height: 1.6;
+    }
+
+    .sport-context strong { color: var(--text); }
+
+    .disclaimer {
+      font-size: 11px; color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px; margin-top: 8px; line-height: 1.6;
+    }
+
+    .offline-pill {
+      display: none;
+      background: var(--yellow); color: #000;
+      font-size: 10px; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px;
+      margin-top: 6px; width: fit-content;
+    }
+    body.offline .offline-pill { display: block; }
+
+    .install-toast {
+      display: none;
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 16px);
+      left: 50%; transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--sport-color);
+      border-radius: 14px;
+      padding: 14px 16px;
+      width: calc(100% - 32px);
+      max-width: 420px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      z-index: 999;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+      to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+
+    .install-toast.visible { display: block; }
+    .install-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .install-text { font-size: 13px; line-height: 1.4; }
+    .install-text strong { color: var(--sport-color); }
+    .install-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .btn-install-now {
+      background: var(--sport-color); color: #000;
+      border: none; border-radius: 8px;
+      padding: 8px 14px; font-size: 13px;
+      font-weight: 700; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .btn-dismiss {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 10px; font-size: 13px;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+    }
+
+    .ios-share-hint { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; display: none; }
+    .ios-only .ios-share-hint { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="sport-bar">
+  <button class="sport-pill active" data-sport="nba" onclick="setSport('nba')">🏀 NBA</button>
+  <button class="sport-pill" data-sport="nfl" onclick="setSport('nfl')">🏈 NFL</button>
+  <button class="sport-pill" data-sport="nhl" onclick="setSport('nhl')">🏒 NHL</button>
+  <button class="sport-pill" data-sport="mlb" onclick="setSport('mlb')">⚾ MLB</button>
+</div>
+
+<div class="app">
+  <div class="hero">
+    <div class="hero-tag" id="heroTag">SPREAD VALUE MODEL</div>
+    <div class="hero-sport">
+      <span class="hero-emoji" id="heroEmoji">🏀</span>
+      <span id="heroSport">NBA</span>
+    </div>
+    <div class="hero-sub" id="heroSub">Point spread · Elo · Off/Def ratings · Rest · Pace</div>
+    <div class="offline-pill">📴 Offline</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('home')">🏠 Home</button>
+    <button class="tab" onclick="switchTab('away')">✈️ Away</button>
+    <button class="tab" onclick="switchTab('market')">📈 Market</button>
+  </div>
+
+  <div class="tab-panel active" id="panel-home">
+    <div class="card">
+      <div class="card-title">Home Team</div>
+      <div id="home-fields"></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-away">
+    <div class="card">
+      <div class="card-title">Away Team</div>
+      <div id="away-fields"></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-market">
+    <div class="card">
+      <div class="card-title">Market Line</div>
+      <div class="field-group">
+        <div class="field-label" id="spreadLabel">Book Spread — home perspective (e.g. -4.5 = home favored by 4.5)</div>
+        <div class="input-wrap">
+          <input type="number" id="marketSpread" value="-4.5" min="-30" max="30" step="0.5" />
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Juice on home cover (American odds, e.g. -110)</div>
+        <div class="input-wrap">
+          <input type="number" id="marketLine" value="-110" min="-500" max="500" step="5" />
+        </div>
+      </div>
+      <div class="sport-context" id="sportContext"></div>
+    </div>
+  </div>
+
+  <button class="btn-calc" id="calcBtn" onclick="calculate()">RUN MODEL →</button>
+
+  <div class="results" id="results">
+    <div class="verdict-banner" id="verdictBanner">
+      <div>
+        <div class="verdict-eye">Model Verdict</div>
+        <div class="verdict-main" id="verdictMain">—</div>
+      </div>
+      <div>
+        <div class="verdict-edge" id="verdictEdge">—</div>
+        <div class="verdict-edge-lbl">Edge vs market</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-val" id="statSpread">—</div><div class="stat-lbl">Model Spread</div></div>
+      <div class="stat-box"><div class="stat-val" id="statMargin">—</div><div class="stat-lbl">Proj. Margin (Home)</div></div>
+      <div class="stat-box"><div class="stat-val" id="statKelly">—</div><div class="stat-lbl">½ Kelly Size</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cover Probability</div>
+      <table class="breakdown">
+        <thead><tr><th>Source</th><th>Home Cover %</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Model</td>
+            <td class="mono" id="probModel">—</td>
+            <td><div class="prob-row"><div class="bar-wrap"><div class="bar-fill" id="barModel" style="width:0%"></div></div></div></td>
+          </tr>
+          <tr>
+            <td>Market (vig-adj)</td>
+            <td class="mono" id="probMarket">—</td>
+            <td><div class="prob-row"><div class="bar-wrap"><div class="bar-fill" id="barMarket" style="width:0%;background:var(--muted)"></div></div></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Factor Breakdown</div>
+      <table class="breakdown">
+        <thead><tr><th>Factor</th><th>Contribution</th><th>Method</th></tr></thead>
+        <tbody id="factorBody"></tbody>
+      </table>
+    </div>
+
+    <div class="disclaimer">
+      ⚠️ Educational model only. No model reliably predicts outcomes. Margin distributions are approximated — real variance is higher. Does not account for injuries, lineup changes, or sharp market adjustments. Use ½ Kelly or less. Bet responsibly.
+    </div>
+  </div>
+</div>
+
+<div class="install-toast" id="installToast">
+  <div class="install-row">
+    <div class="install-text"><strong>Add to Home Screen</strong><br>Install for offline access</div>
+    <div class="install-actions">
+      <button class="btn-install-now" id="btnInstall">Install</button>
+      <button class="btn-dismiss" onclick="dismissInstall()">✕</button>
+    </div>
+  </div>
+  <div class="ios-share-hint">Tap <strong>Share ↑</strong> → <strong>Add to Home Screen</strong></div>
+</div>
+
+<script>
+const SPORTS = {
+  nba: {
+    label:'NBA', emoji:'🏀', color:'#ff6b35', glow:'rgba(255,107,53,0.15)',
+    sub:'Point spread · Elo · Off/Def ratings · Rest · Pace',
+    stdDev:12, hca:2.75, eloScale:40, restScale:0.5,
+    context:'<strong>NBA tips:</strong> Pull Elo from 538/FiveThirtyEight. ORtg/DRtg from Basketball-Reference or NBA.com. Rest matters more in dense schedules.',
+    homeFields:[
+      {id:'homeElo', label:'Elo Rating (avg ~1500)', val:1520, unit:'ELO', min:1200, max:1800, step:1},
+      {id:'homeOff', label:'Offensive Rating (pts/100 poss)', val:115.2, unit:'ORtg', min:90, max:135, step:0.1},
+      {id:'homeDef', label:'Defensive Rating (lower=better)', val:112.1, unit:'DRtg', min:90, max:135, step:0.1},
+      {id:'homePace',label:'Pace (possessions/game)', val:100.2, unit:'pos', min:85, max:115, step:0.1},
+    ],
+    awayFields:[
+      {id:'awayElo', label:'Elo Rating', val:1480, unit:'ELO', min:1200, max:1800, step:1},
+      {id:'awayOff', label:'Offensive Rating', val:113.8, unit:'ORtg', min:90, max:135, step:0.1},
+      {id:'awayDef', label:'Defensive Rating', val:114.5, unit:'DRtg', min:90, max:135, step:0.1},
+      {id:'awayPace',label:'Pace', val:98.8, unit:'pos', min:85, max:115, step:0.1},
+    ],
+    restOpts:['B2B','1','2','3+'], defaultSpread:-4.5,
+    computeMargin(i) {
+      const eloC=(i.homeElo-i.awayElo)/this.eloScale;
+      const hcaC=this.hca;
+      const restC=(i.homeRest-i.awayRest)*this.restScale;
+      const rtgC=((i.homeOff-i.awayDef)-(i.awayOff-i.homeDef))*92/100/2;
+      return { total:eloC+hcaC+restC+rtgC, factors:[
+        {name:'Elo Differential',val:eloC,note:'400 Elo ≈ 10 pts'},
+        {name:'Home Court',val:hcaC,note:'+2.75 pts fixed'},
+        {name:'Rest Advantage',val:restC,note:'0.5 pts/day diff'},
+        {name:'Off/Def Ratings',val:rtgC,note:'Net rtg matchup'},
+      ]};
+    }
+  },
+  nfl: {
+    label:'NFL', emoji:'🏈', color:'#00c853', glow:'rgba(0,200,83,0.15)',
+    sub:'Point spread · DVOA · Quarterback rating · Rest · Home field',
+    stdDev:13.5, hca:2.5, eloScale:25, restScale:1.0,
+    context:'<strong>NFL tips:</strong> Pull Elo from 538. DVOA from Football Outsiders. Bye week is worth ~2–3 pts. Short-week (Thu game) is a significant negative.',
+    homeFields:[
+      {id:'homeElo', label:'Elo Rating (avg ~1500)', val:1530, unit:'ELO', min:1200, max:1800, step:1},
+      {id:'homeOff', label:'Offensive DVOA (%)', val:8.5, unit:'DVOA', min:-40, max:40, step:0.1},
+      {id:'homeDef', label:'Defensive DVOA (negative=better)', val:-5.2, unit:'DVOA', min:-40, max:40, step:0.1},
+      {id:'homeQBR', label:'QB Passer Rating', val:96.0, unit:'QBR', min:50, max:150, step:0.5},
+    ],
+    awayFields:[
+      {id:'awayElo', label:'Elo Rating', val:1470, unit:'ELO', min:1200, max:1800, step:1},
+      {id:'awayOff', label:'Offensive DVOA (%)', val:2.1, unit:'DVOA', min:-40, max:40, step:0.1},
+      {id:'awayDef', label:'Defensive DVOA (%)', val:3.8, unit:'DVOA', min:-40, max:40, step:0.1},
+      {id:'awayQBR', label:'QB Passer Rating', val:88.5, unit:'QBR', min:50, max:150, step:0.5},
+    ],
+    restOpts:['Thu','Normal','Bye'], defaultSpread:-3.0,
+    computeMargin(i) {
+      const eloC=(i.homeElo-i.awayElo)/this.eloScale;
+      const hcaC=this.hca;
+      const restMap=[-1,0,2];
+      const restC=(restMap[i.homeRest]||0)-(restMap[i.awayRest]||0);
+      const dvoa=((i.homeOff-i.awayDef)-(i.awayOff-i.homeDef))*0.125;
+      const qbC=(i.homeQBR-i.awayQBR)/10;
+      return { total:eloC+hcaC+restC+dvoa+qbC, factors:[
+        {name:'Elo Differential',val:eloC,note:'NFL Elo tighter scale'},
+        {name:'Home Field',val:hcaC,note:'+2.5 pts fixed'},
+        {name:'Rest Advantage',val:restC,note:'Thu/Normal/Bye'},
+        {name:'DVOA Matchup',val:dvoa,note:'10% DVOA ≈ 1.25 pts'},
+        {name:'QB Advantage',val:qbC,note:'10 rtg pts ≈ 1 pt'},
+      ]};
+    }
+  },
+  nhl: {
+    label:'NHL', emoji:'🏒', color:'#448aff', glow:'rgba(68,138,255,0.15)',
+    sub:'Puck line · Corsi · Save % · Rest · Home ice',
+    stdDev:1.4, hca:0.15, eloScale:200, restScale:0.08,
+    context:'<strong>NHL tips:</strong> Corsi% from Natural Stat Trick. Save% from hockey-reference. B2B is a major factor. Puck line is -1.5 goals.',
+    homeFields:[
+      {id:'homeElo', label:'Elo Rating (avg ~1500)', val:1520, unit:'ELO', min:1200, max:1800, step:1},
+      {id:'homeCF',  label:'Corsi For % (shot attempt %)', val:52.1, unit:'CF%', min:40, max:65, step:0.1},
+      {id:'homeSV',  label:'Save % (goalie)', val:0.918, unit:'SV%', min:0.870, max:0.950, step:0.001},
+      {id:'homeGF',  label:'Goals For per game', val:3.2, unit:'GF', min:1.5, max:5.0, step:0.1},
+    ],
+    awayFields:[
+      {id:'awayElo', label:'Elo Rating', val:1480, unit:'ELO', min:1200, max:1800, step:1},
+      {id:'awayCF',  label:'Corsi For %', val:49.5, unit:'CF%', min:40, max:65, step:0.1},
+      {id:'awaySV',  label:'Save %', val:0.908, unit:'SV%', min:0.870, max:0.950, step:0.001},
+      {id:'awayGF',  label:'Goals For per game', val:2.9, unit:'GF', min:1.5, max:5.0, step:0.1},
+    ],
+    restOpts:['B2B','1','2','3+'], defaultSpread:-1.5,
+    computeMargin(i) {
+      const eloC=(i.homeElo-i.awayElo)/this.eloScale;
+      const hcaC=this.hca;
+      const restC=(i.homeRest-i.awayRest)*this.restScale;
+      const corsiC=(i.homeCF-i.awayCF)*0.04;
+      const svC=(i.homeSV-i.awaySV)*25;
+      const gfC=(i.homeGF-i.awayGF)*0.2;
+      return { total:eloC+hcaC+restC+corsiC+svC+gfC, factors:[
+        {name:'Elo Differential',val:eloC,note:'200 Elo ≈ 1 goal'},
+        {name:'Home Ice',val:hcaC,note:'+0.15 goals fixed'},
+        {name:'Rest Advantage',val:restC,note:'0.08 goals/day'},
+        {name:'Corsi Matchup',val:corsiC,note:'5% CF ≈ 0.2 goals'},
+        {name:'Goalie (SV%)',val:svC,note:'0.01 SV% ≈ 0.25 goals'},
+        {name:'Goals For',val:gfC,note:'Scoring rate diff'},
+      ]};
+    }
+  },
+  mlb: {
+    label:'MLB', emoji:'⚾', color:'#ff4081', glow:'rgba(255,64,129,0.15)',
+    sub:'Run line · ERA · wRC+ · Bullpen · Home park',
+    stdDev:3.0, hca:0.12, eloScale:100, restScale:0.05,
+    context:'<strong>MLB tips:</strong> ERA/FIP from FanGraphs. wRC+ is park-adjusted. Starting pitcher is the single biggest factor. Run line = -1.5.',
+    homeFields:[
+      {id:'homeElo', label:'Elo Rating (avg ~1500)', val:1510, unit:'ELO', min:1200, max:1800, step:1},
+      {id:'homeERA', label:'Starting Pitcher ERA', val:3.85, unit:'ERA', min:1.0, max:8.0, step:0.05},
+      {id:'homeWRC', label:'Team wRC+ (100 = avg)', val:105, unit:'wRC+', min:60, max:150, step:1},
+      {id:'homeBull',label:'Bullpen ERA', val:3.60, unit:'ERA', min:1.5, max:7.0, step:0.05},
+    ],
+    awayFields:[
+      {id:'awayElo', label:'Elo Rating', val:1490, unit:'ELO', min:1200, max:1800, step:1},
+      {id:'awayERA', label:'Starting Pitcher ERA', val:4.20, unit:'ERA', min:1.0, max:8.0, step:0.05},
+      {id:'awayWRC', label:'Team wRC+', val:98, unit:'wRC+', min:60, max:150, step:1},
+      {id:'awayBull',label:'Bullpen ERA', val:4.10, unit:'ERA', min:1.5, max:7.0, step:0.05},
+    ],
+    restOpts:['0','1','2','3+'], defaultSpread:-1.5,
+    computeMargin(i) {
+      const eloC=(i.homeElo-i.awayElo)/this.eloScale;
+      const hcaC=this.hca;
+      const restC=(i.homeRest-i.awayRest)*this.restScale;
+      const eraC=(i.awayERA-i.homeERA)*0.4;
+      const wrcC=(i.homeWRC-i.awayWRC)*0.03;
+      const bullC=(i.awayBull-i.homeBull)*0.2;
+      return { total:eloC+hcaC+restC+eraC+wrcC+bullC, factors:[
+        {name:'Elo Differential',val:eloC,note:'100 Elo ≈ 1 run'},
+        {name:'Home Park',val:hcaC,note:'+0.12 runs fixed'},
+        {name:'Rest Advantage',val:restC,note:'0.05 runs/day'},
+        {name:'Starting Pitcher',val:eraC,note:'ERA diff × 0.4'},
+        {name:'Offense (wRC+)',val:wrcC,note:'10 wRC+ ≈ 0.3 runs'},
+        {name:'Bullpen',val:bullC,note:'ERA diff × 0.2'},
+      ]};
+    }
+  }
+};
+
+let currentSport='nba', homeRest=1, awayRest=1, deferredPrompt=null;
+
+function setSport(sport) {
+  currentSport=sport; homeRest=1; awayRest=1;
+  const cfg=SPORTS[sport];
+  document.querySelectorAll('.sport-pill').forEach(p=>p.classList.toggle('active',p.dataset.sport===sport));
+  document.documentElement.style.setProperty('--sport-color',cfg.color);
+  document.documentElement.style.setProperty('--sport-glow',cfg.glow);
+  document.getElementById('heroEmoji').textContent=cfg.emoji;
+  document.getElementById('heroSport').textContent=cfg.label;
+  document.getElementById('heroSub').textContent=cfg.sub;
+  document.getElementById('sportContext').innerHTML=cfg.context;
+  document.getElementById('marketSpread').value=cfg.defaultSpread;
+  buildFields('home-fields',cfg.homeFields,'home');
+  buildFields('away-fields',cfg.awayFields,'away');
+  document.getElementById('results').classList.remove('visible');
+  switchTab('home');
+}
+
+function buildFields(containerId,fields,team) {
+  const cfg=SPORTS[currentSport];
+  let html=fields.map(f=>`
+    <div class="field-group">
+      <div class="field-label">${f.label}</div>
+      <div class="input-wrap">
+        <input type="number" id="${f.id}" value="${f.val}" min="${f.min}" max="${f.max}" step="${f.step}" />
+        <span class="input-unit">${f.unit}</span>
+      </div>
+    </div>`).join('');
+  html+=`
+    <div class="field-group">
+      <div class="field-label">Rest / Schedule</div>
+      <div class="toggle-row" id="${team}RestToggle">
+        ${cfg.restOpts.map((r,i)=>`<button class="toggle-btn ${i===1?'active':''}" data-val="${i}" onclick="setRest('${team}',${i})">${r}</button>`).join('')}
+      </div>
+    </div>`;
+  document.getElementById(containerId).innerHTML=html;
+}
+
+function switchTab(name) {
+  const panels=['home','away','market'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',panels[i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));
+}
+
+function setRest(team,val) {
+  if(team==='home') homeRest=val; else awayRest=val;
+  document.querySelectorAll(`#${team}RestToggle .toggle-btn`).forEach(b=>b.classList.toggle('active',parseInt(b.dataset.val)===val));
+}
+
+function coverProb(diff,sd) { return 1/(1+Math.exp(-1.7*diff/sd)); }
+function vigAdjProb(line) { const r=line<0?(-line)/(-line+100):100/(line+100),o=110/210; return r/(r+o); }
+function kelly(p,line) { const dec=line<0?1+100/-line:1+line/100,b=dec-1; return Math.max(0,(b*p-(1-p))/b); }
+function fmtVal(n,d=2) { const v=parseFloat(n).toFixed(d); return parseFloat(v)>=0?'+'+v:''+v; }
+
+function calculate() {
+  const cfg=SPORTS[currentSport];
+  const inputs={homeRest,awayRest};
+  [...cfg.homeFields,...cfg.awayFields].forEach(f=>{const el=document.getElementById(f.id);if(el)inputs[f.id]=parseFloat(el.value);});
+  const marketSpread=parseFloat(document.getElementById('marketSpread').value);
+  const marketLine=parseFloat(document.getElementById('marketLine').value);
+  const {total:projMargin,factors}=cfg.computeMargin(inputs);
+  const modelSpread=-projMargin;
+  const hCoverProb=coverProb(projMargin-(-marketSpread),cfg.stdDev);
+  const mktProb=vigAdjProb(marketLine);
+  const edge=hCoverProb-mktProb;
+  const halfKelly=kelly(hCoverProb,marketLine)/2;
+  let verdict,cls;
+  if(Math.abs(edge)<0.03){verdict='No Clear Edge';cls='neutral';}
+  else if(edge>0.03){verdict='Value on Home Cover';cls='value';}
+  else{verdict='Value on Away Cover';cls='novalue';}
+  const edgeColor=cls==='value'?'#00e676':cls==='novalue'?'#ff4545':'#ffc107';
+  document.getElementById('verdictBanner').className='verdict-banner '+cls;
+  document.getElementById('verdictMain').textContent=verdict;
+  document.getElementById('verdictEdge').style.color=edgeColor;
+  document.getElementById('verdictEdge').textContent=(edge>=0?'+':'')+(edge*100).toFixed(1)+'%';
+  const d=cfg.stdDev<5?2:1;
+  document.getElementById('statSpread').textContent=modelSpread.toFixed(d);
+  document.getElementById('statMargin').textContent=fmtVal(projMargin,d);
+  document.getElementById('statKelly').textContent=(halfKelly*100).toFixed(1)+'%';
+  const hP=(hCoverProb*100).toFixed(1),mP=(mktProb*100).toFixed(1);
+  document.getElementById('probModel').textContent=hP+'%';
+  document.getElementById('probMarket').textContent=mP+'%';
+  document.getElementById('barModel').style.width=hP+'%';
+  document.getElementById('barMarket').style.width=mP+'%';
+  document.getElementById('factorBody').innerHTML=factors.map(f=>`
+    <tr>
+      <td>${f.name}</td>
+      <td class="mono">${fmtVal(f.val,d)}</td>
+      <td style="color:var(--muted);font-size:11px">${f.note}</td>
+    </tr>`).join('');
+  const res=document.getElementById('results');
+  res.classList.add('visible');
+  setTimeout(()=>res.scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+// PWA
+if('serviceWorker' in navigator){
+  const sw=`const C='spread-v1';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll([location.href])));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(ca=>{if(ca)return ca;return fetch(e.request).then(r=>{caches.open(C).then(c=>c.put(e.request,r.clone()));return r;}).catch(()=>ca);}));});`;
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});
+}
+
+const mLink=document.createElement('link');
+mLink.rel='manifest';
+mLink.href=URL.createObjectURL(new Blob([JSON.stringify({name:'Spread Value Model',short_name:'Spread Model',start_url:location.href,display:'standalone',background_color:'#080c14',theme_color:'#080c14',icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%23080c14'/%3E%3Ctext x='256' y='340' font-size='260' text-anchor='middle'%3E🏆%3C/text%3E%3C/svg%3E",sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}]})],{type:'application/json'}));
+document.head.appendChild(mLink);
+
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installToast').classList.add('visible');});
+document.getElementById('btnInstall').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt=null;dismissInstall();});
+function dismissInstall(){document.getElementById('installToast').classList.remove('visible');}
+
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+if(isIOS&&!window.navigator.standalone){const t=document.getElementById('installToast');t.classList.add('visible','ios-only');document.getElementById('btnInstall').style.display='none';}
+
+window.addEventListener('online',()=>document.body.classList.remove('offline'));
+window.addEventListener('offline',()=>document.body.classList.add('offline'));
+if(!navigator.onLine)document.body.classList.add('offline');
+
+setSport('nba');
+</script>
+</body>
+</html>
