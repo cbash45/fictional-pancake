@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+  <title>Spread Value Model</title>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Spread Model"/>
+  <meta name="theme-color" content="#07090f"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:#07090f; --s1:#0d1117; --s2:#131a24; --s3:#1a2535;
+      --border:#1f2f45; --border2:#253550;
+      --text:#dde8f5; --muted:#3d5470; --label:#6a8faf;
+      --sc:#00d4ff; --sg:rgba(0,212,255,.13);
+      --green:#00e676; --red:#ff4545; --yellow:#ffc107;
+      --safe-top:env(safe-area-inset-top,0px);
+      --safe-bot:env(safe-area-inset-bottom,0px);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overscroll-behavior:none}
+
+    /* ── Sport bar ── */
+    .sport-bar{
+      position:sticky;top:0;z-index:100;
+      background:var(--bg);border-bottom:1px solid var(--border);
+      padding:calc(var(--safe-top) + 10px) 16px 10px;
+      display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;
+    }
+    .sport-bar::-webkit-scrollbar{display:none}
+    .sp{
+      display:flex;align-items:center;gap:5px;
+      padding:7px 15px;border-radius:100px;
+      border:1.5px solid var(--border);background:transparent;
+      color:var(--muted);font-family:'Syne',sans-serif;
+      font-size:13px;font-weight:700;letter-spacing:.5px;
+      cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;
+    }
+    .sp.active{background:var(--sg);border-color:var(--sc);color:var(--sc);box-shadow:0 0 18px var(--sg)}
+
+    /* ── App ── */
+    .app{max-width:660px;margin:0 auto;padding:22px 16px calc(var(--safe-bot) + 44px)}
+
+    /* ── Hero ── */
+    .hero{margin-bottom:24px}
+    .hero-eye{
+      font-family:'JetBrains Mono',monospace;font-size:9px;
+      letter-spacing:3px;color:var(--sc);text-transform:uppercase;
+      margin-bottom:6px;display:flex;align-items:center;gap:8px;
+    }
+    .hero-eye::before{content:'';width:18px;height:2px;background:var(--sc);border-radius:2px}
+    .hero-name{
+      font-family:'Syne',sans-serif;font-size:48px;font-weight:800;
+      line-height:1;letter-spacing:-1.5px;color:var(--sc);
+      text-shadow:0 0 48px var(--sg);transition:color .3s,text-shadow .3s;
+      display:flex;align-items:center;gap:10px;
+    }
+    .hero-emoji{font-size:40px}
+    .hero-sub{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}
+    .offline-pill{display:none;background:var(--yellow);color:#000;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;margin-top:6px;width:fit-content}
+    body.offline .offline-pill{display:block}
+
+    /* ── Team selector grid ── */
+    .team-grid{
+      display:grid;grid-template-columns:1fr auto 1fr;
+      align-items:start;gap:10px;margin-bottom:12px;
+    }
+    .team-col{display:flex;flex-direction:column;gap:8px}
+    .team-label{
+      font-family:'JetBrains Mono',monospace;font-size:9px;
+      letter-spacing:2px;color:var(--label);text-transform:uppercase;
+      text-align:center;
+    }
+    .team-select-wrap{position:relative}
+    .team-select-wrap select{
+      width:100%;background:var(--s2);border:1.5px solid var(--border);
+      border-radius:12px;padding:11px 36px 11px 14px;
+      color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;
+      font-weight:500;outline:none;cursor:pointer;
+      -webkit-appearance:none;appearance:none;
+      transition:border-color .15s;
+    }
+    .team-select-wrap select:focus{border-color:var(--sc)}
+    .team-select-wrap::after{
+      content:'▾';position:absolute;right:12px;top:50%;
+      transform:translateY(-50%);color:var(--muted);font-size:12px;
+      pointer-events:none;
+    }
+
+    /* vs badge */
+    .vs-badge{
+      display:flex;align-items:center;justify-content:center;
+      margin-top:28px;
+      font-family:'Syne',sans-serif;font-size:20px;font-weight:800;
+      color:var(--border2);letter-spacing:1px;
+    }
+
+    /* ── Fetch button ── */
+    .btn-fetch{
+      width:100%;padding:13px;
+      background:var(--s2);color:var(--sc);
+      border:1.5px solid var(--sc);border-radius:12px;
+      font-size:13px;font-weight:600;cursor:pointer;
+      font-family:'Syne',sans-serif;letter-spacing:.5px;
+      transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;
+      box-shadow:0 0 20px rgba(0,212,255,.06);
+    }
+    .btn-fetch:hover{background:var(--sg)}
+    .btn-fetch:active{transform:scale(.98)}
+    .btn-fetch:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+    /* loading spinner */
+    .spinner{
+      width:14px;height:14px;border:2px solid rgba(0,212,255,.3);
+      border-top-color:var(--sc);border-radius:50%;
+      animation:spin .7s linear infinite;flex-shrink:0;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── Stats card ── */
+    .stats-preview{
+      display:none;
+      background:var(--s1);border:1px solid var(--border);border-radius:16px;
+      padding:18px;margin-bottom:10px;
+      animation:fadeUp .3s ease;
+    }
+    .stats-preview.visible{display:block}
+    .stats-header{
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:14px;
+    }
+    .stats-title{
+      font-family:'JetBrains Mono',monospace;font-size:9px;
+      letter-spacing:2px;color:var(--sc);text-transform:uppercase;
+    }
+    .stats-freshness{font-size:10px;color:var(--muted)}
+
+    .team-stats-row{
+      display:grid;grid-template-columns:1fr 1fr;gap:10px;
+    }
+    .team-stat-block{
+      background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px;
+    }
+    .tsb-name{
+      font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
+      color:var(--text);margin-bottom:10px;
+      display:flex;align-items:center;gap:6px;
+    }
+    .tsb-name .badge{
+      font-size:9px;padding:2px 6px;border-radius:4px;
+      background:var(--sg);color:var(--sc);
+      font-family:'JetBrains Mono',monospace;letter-spacing:.5px;
+    }
+    .stat-pill-row{display:flex;flex-direction:column;gap:5px}
+    .stat-pill{
+      display:flex;align-items:center;justify-content:space-between;
+      background:var(--s3);border-radius:6px;padding:6px 8px;
+    }
+    .sp-label{font-size:10px;color:var(--label)}
+    .sp-val{
+      font-family:'JetBrains Mono',monospace;font-size:12px;
+      color:var(--text);font-weight:600;
+    }
+    .sp-val.good{color:var(--green)}
+    .sp-val.bad{color:var(--red)}
+
+    /* AI source note */
+    .ai-note{
+      font-size:11px;color:var(--muted);text-align:center;
+      margin-top:8px;display:flex;align-items:center;justify-content:center;gap:5px;
+    }
+    .ai-dot{
+      width:6px;height:6px;border-radius:50%;
+      background:var(--sc);flex-shrink:0;
+      box-shadow:0 0 6px var(--sc);
+    }
+
+    /* ── Market card ── */
+    .card{
+      background:var(--s1);border:1px solid var(--border);
+      border-radius:16px;padding:18px;margin-bottom:10px;
+    }
+    .card-title{
+      font-family:'JetBrains Mono',monospace;font-size:9px;
+      letter-spacing:2px;color:var(--sc);text-transform:uppercase;
+      margin-bottom:14px;display:flex;align-items:center;gap:8px;
+    }
+    .card-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+    .field-group{margin-bottom:12px}
+    .field-label{font-size:11px;color:var(--label);margin-bottom:5px;font-weight:500}
+    .input-wrap{position:relative}
+    .input-unit{
+      position:absolute;right:11px;top:50%;transform:translateY(-50%);
+      font-size:10px;color:var(--muted);
+      font-family:'JetBrains Mono',monospace;pointer-events:none;
+    }
+    input[type=number]{
+      width:100%;background:var(--s2);border:1px solid var(--border);
+      border-radius:10px;padding:10px 40px 10px 13px;
+      color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;
+      outline:none;transition:border-color .15s;-webkit-appearance:none;
+    }
+    input[type=number]:focus{border-color:var(--sc)}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+    .toggle-row{display:flex;gap:5px}
+    .tb{
+      flex:1;padding:8px 2px;border-radius:8px;border:1px solid var(--border);
+      background:transparent;color:var(--label);
+      font-size:11px;font-weight:600;cursor:pointer;
+      font-family:'Outfit',sans-serif;transition:all .15s;
+    }
+    .tb.active{background:var(--sg);border-color:var(--sc);color:var(--sc)}
+
+    .sport-context{
+      background:var(--s2);border:1px solid var(--border);
+      border-left:3px solid var(--sc);border-radius:10px;
+      padding:11px 13px;margin-top:12px;
+      font-size:11px;color:var(--label);line-height:1.6;
+      transition:border-color .3s;
+    }
+    .sport-context strong{color:var(--text)}
+
+    /* ── Calculate button ── */
+    .btn-calc{
+      width:100%;padding:15px;background:var(--sc);color:#000;
+      border:none;border-radius:12px;font-size:16px;font-weight:700;
+      cursor:pointer;font-family:'Syne',sans-serif;letter-spacing:.8px;
+      transition:all .15s;margin-top:4px;
+      box-shadow:0 4px 24px var(--sg);
+    }
+    .btn-calc:active{transform:scale(.98)}
+
+    /* ── Results ── */
+    .results{display:none}
+    .results.visible{display:block;animation:fadeUp .35s ease}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+    .verdict{
+      border-radius:16px;padding:20px;margin-bottom:10px;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+    }
+    .verdict.value{background:rgba(0,230,118,.07);border:1px solid rgba(0,230,118,.3)}
+    .verdict.novalue{background:rgba(255,69,69,.07);border:1px solid rgba(255,69,69,.3)}
+    .verdict.neutral{background:rgba(255,193,7,.06);border:1px solid rgba(255,193,7,.25)}
+    .v-eye{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;opacity:.5;margin-bottom:5px}
+    .v-main{font-family:'Syne',sans-serif;font-size:21px;font-weight:700}
+    .verdict.value   .v-main{color:var(--green)}
+    .verdict.novalue .v-main{color:var(--red)}
+    .verdict.neutral .v-main{color:var(--yellow)}
+    .v-edge{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600;text-align:right;flex-shrink:0}
+    .v-edge-lbl{font-size:10px;color:var(--muted);text-align:right;margin-top:2px}
+
+    .s-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+    .s-box{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:13px 10px}
+    .s-val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--sc);margin-bottom:3px}
+    .s-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;line-height:1.3}
+
+    .btable{width:100%;border-collapse:collapse;font-size:13px}
+    .btable th{text-align:left;padding:6px 8px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);font-size:10px;letter-spacing:.5px;text-transform:uppercase}
+    .btable td{padding:9px 8px;border-bottom:1px solid rgba(31,47,69,.6);vertical-align:middle}
+    .btable tr:last-child td{border-bottom:none}
+    .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+    .bar-wrap{background:var(--bg);border-radius:4px;height:5px;overflow:hidden;width:70px}
+    .bar-fill{height:100%;border-radius:4px;background:var(--sc);transition:width .7s cubic-bezier(.4,0,.2,1),background .3s}
+    .prob-row{display:flex;align-items:center;gap:8px}
+
+    .disclaimer{font-size:10px;color:var(--muted);background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-top:8px;line-height:1.6}
+
+    /* error */
+    .fetch-error{
+      background:rgba(255,69,69,.08);border:1px solid rgba(255,69,69,.3);
+      border-radius:10px;padding:12px 14px;margin-bottom:10px;
+      font-size:12px;color:#ff8080;line-height:1.5;display:none;
+    }
+    .fetch-error.visible{display:block}
+
+    /* install */
+    .install-toast{
+      display:none;position:fixed;
+      bottom:calc(var(--safe-bot) + 16px);left:50%;transform:translateX(-50%);
+      background:var(--s1);border:1px solid var(--sc);border-radius:14px;
+      padding:13px 16px;width:calc(100% - 32px);max-width:420px;
+      box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:999;
+      animation:slideUp .3s ease;
+    }
+    @keyframes slideUp{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+    .install-toast.visible{display:block}
+    .i-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .i-text{font-size:13px;line-height:1.4}
+    .i-text strong{color:var(--sc)}
+    .i-actions{display:flex;gap:6px;flex-shrink:0}
+    .btn-install-now{background:var(--sc);color:#000;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif}
+    .btn-dismiss{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif}
+    .ios-hint{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;display:none}
+    .ios-only .ios-hint{display:block}
+  </style>
+</head>
+<body>
+
+<!-- Sport bar -->
+<div class="sport-bar">
+  <button class="sp active" data-sport="nba" onclick="setSport('nba')">🏀 NBA</button>
+  <button class="sp" data-sport="nfl" onclick="setSport('nfl')">🏈 NFL</button>
+  <button class="sp" data-sport="nhl" onclick="setSport('nhl')">🏒 NHL</button>
+  <button class="sp" data-sport="mlb" onclick="setSport('mlb')">⚾ MLB</button>
+</div>
+
+<div class="app">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eye">SPREAD VALUE MODEL</div>
+    <div class="hero-name"><span class="hero-emoji" id="heroEmoji">🏀</span><span id="heroSport">NBA</span></div>
+    <div class="hero-sub" id="heroSub">Select teams — AI fetches live ratings automatically</div>
+    <div class="offline-pill">📴 Offline</div>
+  </div>
+
+  <!-- Team selectors -->
+  <div class="team-grid">
+    <div class="team-col">
+      <div class="team-label">🏠 Home Team</div>
+      <div class="team-select-wrap">
+        <select id="homeTeam" onchange="onTeamChange()"></select>
+      </div>
+    </div>
+    <div class="vs-badge">VS</div>
+    <div class="team-col">
+      <div class="team-label">✈️ Away Team</div>
+      <div class="team-select-wrap">
+        <select id="awayTeam" onchange="onTeamChange()"></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fetch button -->
+  <button class="btn-fetch" id="fetchBtn" onclick="fetchStats()">
+    <span id="fetchIcon">⚡</span>
+    <span id="fetchLabel">Fetch Live Stats via AI</span>
+  </button>
+
+  <!-- Error -->
+  <div class="fetch-error" id="fetchError"></div>
+
+  <!-- Stats preview -->
+  <div class="stats-preview" id="statsPreview">
+    <div class="stats-header">
+      <div class="stats-title">Live Team Ratings</div>
+      <div class="stats-freshness" id="statsFreshness"></div>
+    </div>
+    <div class="team-stats-row" id="statsRow"></div>
+    <div class="ai-note">
+      <div class="ai-dot"></div>
+      <span>Fetched by AI from current season data · <span id="statsDate"></span></span>
+    </div>
+  </div>
+
+  <!-- Rest & Market -->
+  <div class="card" id="matchupCard" style="display:none">
+    <div class="card-title">Matchup Details</div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <div class="field-label">Home Rest / Schedule</div>
+        <div class="toggle-row" id="homeRestToggle"></div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Away Rest / Schedule</div>
+        <div class="toggle-row" id="awayRestToggle"></div>
+      </div>
+    </div>
+
+    <div class="field-row" style="margin-top:4px">
+      <div class="field-group">
+        <div class="field-label" id="spreadLbl">Spread (home, e.g. -4.5)</div>
+        <div class="input-wrap">
+          <input type="number" id="marketSpread" value="-4.5" step="0.5"/>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Juice (e.g. -110)</div>
+        <div class="input-wrap">
+          <input type="number" id="marketLine" value="-110" step="5"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="sport-context" id="sportContext"></div>
+  </div>
+
+  <button class="btn-calc" id="calcBtn" onclick="calculate()" style="display:none">RUN MODEL →</button>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="verdict" id="verdictBanner">
+      <div>
+        <div class="v-eye">Model Verdict</div>
+        <div class="v-main" id="verdictMain">—</div>
+      </div>
+      <div>
+        <div class="v-edge" id="verdictEdge">—</div>
+        <div class="v-edge-lbl">Edge vs market</div>
+      </div>
+    </div>
+
+    <div class="s-grid">
+      <div class="s-box"><div class="s-val" id="sSpread">—</div><div class="s-lbl">Model Spread</div></div>
+      <div class="s-box"><div class="s-val" id="sMargin">—</div><div class="s-lbl">Proj Margin (Home)</div></div>
+      <div class="s-box"><div class="s-val" id="sKelly">—</div><div class="s-lbl">½ Kelly Size</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cover Probability</div>
+      <table class="btable">
+        <thead><tr><th>Source</th><th>Home Cover %</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Model</td>
+            <td class="mono" id="pModel">—</td>
+            <td><div class="prob-row"><div class="bar-wrap"><div class="bar-fill" id="bModel" style="width:0%"></div></div></div></td>
+          </tr>
+          <tr>
+            <td>Market (vig-adj)</td>
+            <td class="mono" id="pMarket">—</td>
+            <td><div class="prob-row"><div class="bar-wrap"><div class="bar-fill" id="bMarket" style="width:0%;background:var(--muted)"></div></div></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Factor Breakdown</div>
+      <table class="btable">
+        <thead><tr><th>Factor</th><th>Pts (home)</th><th>Method</th></tr></thead>
+        <tbody id="factorBody"></tbody>
+      </table>
+    </div>
+
+    <div class="disclaimer">⚠️ Educational model only. AI-fetched stats may have delays or minor inaccuracies — always cross-check. No model reliably predicts outcomes. Use ½ Kelly or less. Bet responsibly.</div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- Install toast -->
+<div class="install-toast" id="installToast">
+  <div class="i-row">
+    <div class="i-text"><strong>Add to Home Screen</strong><br>Install for offline access</div>
+    <div class="i-actions">
+      <button class="btn-install-now" id="btnInstall">Install</button>
+      <button class="btn-dismiss" onclick="dismissInstall()">✕</button>
+    </div>
+  </div>
+  <div class="ios-hint">Tap <strong>Share ↑</strong> → <strong>Add to Home Screen</strong></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// SPORT CONFIG
+// ═══════════════════════════════════════════════════════
+const SPORTS = {
+  nba:{
+    label:'NBA',emoji:'🏀',color:'#f97316',glow:'rgba(249,115,22,.14)',
+    sub:'Select teams — AI fetches ORtg, DRtg, Pace & Elo automatically',
+    stdDev:12,hca:2.75,defaultSpread:-4.5,
+    restOpts:['B2B','1 day','2 days','3+ days'],
+    context:'<strong>Sources:</strong> ORtg/DRtg/Pace from NBA.com · Elo from 538/Neil Paine · Updated through last night\'s games.',
+    teams:['Atlanta Hawks','Boston Celtics','Brooklyn Nets','Charlotte Hornets','Chicago Bulls','Cleveland Cavaliers','Dallas Mavericks','Denver Nuggets','Detroit Pistons','Golden State Warriors','Houston Rockets','Indiana Pacers','LA Clippers','Los Angeles Lakers','Memphis Grizzlies','Miami Heat','Milwaukee Bucks','Minnesota Timberwolves','New Orleans Pelicans','New York Knicks','Oklahoma City Thunder','Orlando Magic','Philadelphia 76ers','Phoenix Suns','Portland Trail Blazers','Sacramento Kings','San Antonio Spurs','Toronto Raptors','Utah Jazz','Washington Wizards'],
+    statsPrompt:(home,away)=>`You are a sports data assistant. Return ONLY a JSON object, no markdown, no explanation.
+
+Fetch the most current 2025-26 NBA season stats for these two teams: "${home}" and "${away}".
+
+Return this exact JSON structure:
+{
+  "home": {
+    "name": "${home}",
+    "elo": <number, current Elo rating ~1400-1700>,
+    "ortg": <number, offensive rating per 100 possessions, e.g. 115.2>,
+    "drtg": <number, defensive rating per 100 possessions, lower is better, e.g. 112.1>,
+    "pace": <number, possessions per game, e.g. 99.8>,
+    "record": "<W-L string>"
+  },
+  "away": {
+    "name": "${away}",
+    "elo": <number>,
+    "ortg": <number>,
+    "drtg": <number>,
+    "pace": <number>,
+    "record": "<W-L string>"
+  },
+  "asOf": "<date string like 'Apr 18 2026'>"
+}
+
+Use your knowledge of the current NBA season to provide accurate numbers. Elo ratings: league average is 1500, strong teams ~1600+, weak teams ~1400.`,
+    computeMargin(d,hR,aR){
+      const eloC=(d.home.elo-d.away.elo)/40;
+      const hcaC=this.hca;
+      const restC=(hR-aR)*0.5;
+      const rtgC=((d.home.ortg-d.away.drtg)-(d.away.ortg-d.home.drtg))*92/100/2;
+      return{total:eloC+hcaC+restC+rtgC,factors:[
+        {name:'Elo Differential',val:eloC,note:'400 Elo ≈ 10 pts'},
+        {name:'Home Court',val:hcaC,note:'+2.75 pts fixed'},
+        {name:'Rest Advantage',val:restC,note:'0.5 pts/day diff'},
+        {name:'Off/Def Ratings',val:rtgC,note:'Net rtg matchup'},
+      ]};
+    },
+    renderStats(d){
+      const h=d.home,a=d.away;
+      return`
+        <div class="team-stat-block">
+          <div class="tsb-name">${h.name.split(' ').pop()} <span class="badge">HOME</span></div>
+          <div class="stat-pill-row">
+            <div class="stat-pill"><span class="sp-label">Elo</span><span class="sp-val">${h.elo}</span></div>
+            <div class="stat-pill"><span class="sp-label">ORtg</span><span class="sp-val ${h.ortg>115?'good':h.ortg<110?'bad':''}">${h.ortg.toFixed(1)}</span></div>
+            <div class="stat-pill"><span class="sp-label">DRtg</span><span class="sp-val ${h.drtg<111?'good':h.drtg>116?'bad':''}">${h.drtg.toFixed(1)}</span></div>
+            <div class="stat-pill"><span class="sp-label">Pace</span><span class="sp-val">${h.pace.toFixed(1)}</span></div>
+            <div class="stat-pill"><span class="sp-label">Record</span><span class="sp-val">${h.record}</span></div>
+          </div>
+        </div>
+        <div class="team-stat-block">
+          <div class="tsb-name">${a.name.split(' ').pop()} <span class="badge">AWAY</span></div>
+          <div class="stat-pill-row">
+            <div class="stat-pill"><span class="sp-label">Elo</span><span class="sp-val">${a.elo}</span></div>
+            <div class="stat-pill"><span class="sp-label">ORtg</span><span class="sp-val ${a.ortg>115?'good':a.ortg<110?'bad':''}">${a.ortg.toFixed(1)}</span></div>
+            <div class="stat-pill"><span class="sp-label">DRtg</span><span class="sp-val ${a.drtg<111?'good':a.drtg>116?'bad':''}">${a.drtg.toFixed(1)}</span></div>
+            <div class="stat-pill"><span class="sp-label">Pace</span><span class="sp-val">${a.pace.toFixed(1)}</span></div>
+            <div class="stat-pill"><span class="sp-label">Record</span><span class="sp-val">${a.record}</span></div>
+          </div>
+        </div>`;
+    }
+  },
+
+  nfl:{
+    label:'NFL',emoji:'🏈',color:'#22c55e',glow:'rgba(34,197,94,.13)',
+    sub:'Select teams — AI fetches DVOA, QB rating & Elo automatically',
+    stdDev:13.5,hca:2.5,defaultSpread:-3.0,
+    restOpts:['Thu (short)','Normal','Bye week'],
+    context:'<strong>Sources:</strong> DVOA from Football Outsiders · QB rating from Pro Football Reference · Elo from 538.',
+    teams:['Arizona Cardinals','Atlanta Falcons','Baltimore Ravens','Buffalo Bills','Carolina Panthers','Chicago Bears','Cincinnati Bengals','Cleveland Browns','Dallas Cowboys','Denver Broncos','Detroit Lions','Green Bay Packers','Houston Texans','Indianapolis Colts','Jacksonville Jaguars','Kansas City Chiefs','Las Vegas Raiders','Los Angeles Chargers','Los Angeles Rams','Miami Dolphins','Minnesota Vikings','New England Patriots','New Orleans Saints','New York Giants','New York Jets','Philadelphia Eagles','Pittsburgh Steelers','San Francisco 49ers','Seattle Seahawks','Tampa Bay Buccaneers','Tennessee Titans','Washington Commanders'],
+    statsPrompt:(home,away)=>`You are a sports data assistant. Return ONLY a JSON object, no markdown, no explanation.
+
+Fetch the most current 2025-26 NFL season stats for: "${home}" and "${away}".
+
+Return exactly:
+{
+  "home": {
+    "name": "${home}",
+    "elo": <number ~1400-1700>,
+    "offDVOA": <number, offensive DVOA %, e.g. 8.5 means +8.5%>,
+    "defDVOA": <number, defensive DVOA %, negative is better, e.g. -6.2>,
+    "qbRating": <number, starting QB passer rating, e.g. 95.4>,
+    "record": "<W-L>"
+  },
+  "away": {
+    "name": "${away}",
+    "elo": <number>,
+    "offDVOA": <number>,
+    "defDVOA": <number>,
+    "qbRating": <number>,
+    "record": "<W-L>"
+  },
+  "asOf": "<date>"
+}`,
+    computeMargin(d,hR,aR){
+      const eloC=(d.home.elo-d.away.elo)/25;
+      const hcaC=this.hca;
+      const rMap=[-1,0,2];
+      const restC=(rMap[hR]||0)-(rMap[aR]||0);
+      const dvoa=((d.home.offDVOA-d.away.defDVOA)-(d.away.offDVOA-d.home.defDVOA))*0.125;
+      const qbC=(d.home.qbRating-d.away.qbRating)/10;
+      return{total:eloC+hcaC+restC+dvoa+qbC,factors:[
+        {name:'Elo Differential',val:eloC,note:'NFL Elo scale'},
+        {name:'Home Field',val:hcaC,note:'+2.5 pts fixed'},
+        {name:'Rest Advantage',val:restC,note:'Thu/Normal/Bye'},
+        {name:'DVOA Matchup',val:dvoa,note:'10% DVOA ≈ 1.25 pts'},
+        {name:'QB Advantage',val:qbC,note:'10 rtg pts ≈ 1 pt'},
+      ]};
+    },
+    renderStats(d){
+      const h=d.home,a=d.away;
+      const fmt=v=>v>=0?'+'+v.toFixed(1):v.toFixed(1);
+      return`
+        <div class="team-stat-block">
+          <div class="tsb-name">${h.name.split(' ').pop()} <span class="badge">HOME</span></div>
+          <div class="stat-pill-row">
+            <div class="stat-pill"><span class="sp-label">Elo</span><span class="sp-val">${h.elo}</span></div>
+            <div class="stat-pill"><span class="sp-label">Off DVOA</span><span class="sp-val ${h.offDVOA>5?'good':h.offDVOA<-5?'bad':''}">${fmt(h.offDVOA)}%</span></div>
+            <div class="stat-pill"><span class="sp-label">Def DVOA</span><span class="sp-val ${h.defDVOA<-5?'good':h.defDVOA>5?'bad':''}">${fmt(h.defDVOA)}%</span></div>
+            <div class="stat-pill"><span class="sp-label">QB Rtg</span><span class="sp-val">${h.qbRating.toFixed(1)}</span></div>
+            <div class="stat-pill"><span class="sp-label">Record</span><span class="sp-val">${h.record}</span></div>
+          </div>
+        </div>
+        <div class="team-stat-block">
+          <div class="tsb-name">${a.name.split(' ').pop()} <span class="badge">AWAY</span></div>
+          <div class="stat-pill-row">
+            <div class="stat-pill"><span class="sp-label">Elo</span><span class="sp-val">${a.elo}</span></div>
+            <div class="stat-pill"><span class="sp-label">Off DVOA</span><span class="sp-val ${a.offDVOA>5?'good':a.offDVOA<-5?'bad':''}">${fmt(a.offDVOA)}%</span></div>
+            <div class="stat-pill"><span class="sp-label">Def DVOA</span><span class="sp-val ${a.defDVOA<-5?'good':a.defDVOA>5?'bad':''}">${fmt(a.defDVOA)}%</span></div>
+            <div class="stat-pill"><span class="sp-label">QB Rtg</span><span class="sp-val">${a.qbRating.toFixed(1)}</span></div>
+            <div class="stat-pill"><span class="sp-label">Record</span><span class="sp-val">${a.record}</span></div>
+          </div>
+        </div>`;
+    }
+  },
+
+  nhl:{
+    label:'NHL',emoji:'🏒',color:'#60a5fa',glow:'rgba(96,165,250,.13)',
+    sub:'Select teams — AI fetches Corsi%, Save% & Elo automatically',
+    stdDev:1.4,hca:0.15,defaultSpread:-1.5,
+    restOpts:['B2B','1 day','2 days','3+ days'],
+    context:'<strong>Sources:</strong> Corsi% from Natural Stat Trick · Save% from Hockey Reference · Elo from 538.',
+    teams:['Anaheim Ducks','Arizona Coyotes','Boston Bruins','Buffalo Sabres','Calgary Flames','Carolina Hurricanes','Chicago Blackhawks','Colorado Avalanche','Columbus Blue Jackets','Dallas Stars','Detroit Red Wings','Edmonton Oilers','Florida Panthers','Los Angeles Kings','Minnesota Wild','Montreal Canadiens','Nashville Predators','New Jersey Devils','New York Islanders','New York Rangers','Ottawa Senators','Philadelphia Flyers','Pittsburgh Penguins','San Jose Sharks','Seattle Kraken','St. Louis Blues','Tampa Bay Lightning','Toronto Maple Leafs','Utah Hockey Club','Vancouver Canucks','Vegas Golden Knights','Washington Capitals','Winnipeg Jets'],
+    statsPrompt:(home,away)=>`You are a sports data assistant. Return ONLY a JSON object, no markdown, no explanation.
+
+Fetch the most current 2025-26 NHL season stats for: "${home}" and "${away}".
+
+Return exactly:
+{
+  "home": {
+    "name": "${home}",
+    "elo": <number ~1400-1700>,
+    "corsiPct": <number, CF% e.g. 52.3>,
+    "savePct": <number, team save %, e.g. 0.912>,
+    "goalsFor": <number, goals for per game, e.g. 3.1>,
+    "record": "<W-L-OT>"
+  },
+  "away": {
+    "name": "${away}",
+    "elo": <number>,
+    "corsiPct": <number>,
+    "savePct": <number>,
+    "goalsFor": <number>,
+    "record": "<W-L-OT>"
+  },
+  "asOf": "<date>"
+}`,
+    computeMargin(d,hR,aR){
+      const eloC=(d.home.elo-d.away.elo)/200;
+      const hcaC=this.hca;
+      const restC=(hR-aR)*0.08;
+      const corsiC=(d.home.corsiPct-d.away.corsiPct)*0.04;
+      const svC=(d.home.savePct-d.away.savePct)*25;
+      const gfC=(d.home.goalsFor-d.away.goalsFor)*0.2;
+      return{total:eloC+hcaC+restC+corsiC+svC+gfC,factors:[
+        {name:'Elo Differential',val:eloC,note:'200 Elo ≈ 1 goal'},
+        {name:'Home Ice',val:hcaC,note:'+0.15 goals fixed'},
+        {name:'Rest Advantage',val:restC,note:'0.08 goals/day'},
+        {name:'Corsi Matchup',val:corsiC,note:'5% CF ≈ 0.2 goals'},
+        {name:'Save % (Goalie)',val:svC,note:'0.01 SV% ≈ 0.25 goals'},
+        {name:'Goals For/Game',val:gfC,note:'Scoring rate diff'},
+      ]};
+    },
+    renderStats(d){
+      const h=d.home,a=d.away;
+      return`
+        <div class="team-stat-block">
+          <div class="tsb-name">${h.name.split(' ').pop()} <span class="badge">HOME</span></div>
+          <div class="stat-pill-row">
+            <div class="stat-pill"><span class="sp-label">Elo</span><span class="sp-val">${h.elo}</span></div>
+            <div class="stat-pill"><span class="sp-label">Corsi%</span><span class="sp-val ${h.corsiPct>52?'good':h.corsiPct<48?'bad':''}">${h.corsiPct.toFixed(1)}%</span></div>
+            <div class="stat-pill"><span class="sp-label">Save%</span><span class="sp-val ${h.savePct>.915?'good':h.savePct<.900?'bad':''}">${h.savePct.toFixed(3)}</span></div>
+            <div class="stat-pill"><span class="sp-label">GF/G</span><span class="sp-val">${h.goalsFor.toFixed(2)}</span></div>
+            <div class="stat-pill"><span class="sp-label">Record</span><span class="sp-val">${h.record}</span></div>
+          </div>
+        </div>
+        <div class="team-stat-block">
+          <div class="tsb-name">${a.name.split(' ').pop()} <span class="badge">AWAY</span></div>
+          <div class="stat-pill-row">
+            <div class="stat-pill"><span class="sp-label">Elo</span><span class="sp-val">${a.elo}</span></div>
+            <div class="stat-pill"><span class="sp-label">Corsi%</span><span class="sp-val ${a.corsiPct>52?'good':a.corsiPct<48?'bad':''}">${a.corsiPct.toFixed(1)}%</span></div>
+            <div class="stat-pill"><span class="sp-label">Save%</span><span class="sp-val ${a.savePct>.915?'good':a.savePct<.900?'bad':''}">${a.savePct.toFixed(3)}</span></div>
+            <div class="stat-pill"><span class="sp-label">GF/G</span><span class="sp-val">${a.goalsFor.toFixed(2)}</span></div>
+            <div class="stat-pill"><span class="sp-label">Record</span><span class="sp-val">${a.record}</span></div>
+          </div>
+        </div>`;
+    }
+  },
+
+  mlb:{
+    label:'MLB',emoji:'⚾',color:'#f43f5e',glow:'rgba(244,63,94,.13)',
+    sub:'Select teams — AI fetches ERA, wRC+ & Elo automatically',
+    stdDev:3.0,hca:0.12,defaultSpread:-1.5,
+    restOpts:['0 days','1 day','2 days','3+ days'],
+    context:'<strong>Sources:</strong> ERA/FIP from FanGraphs · wRC+ park-adjusted · Elo from 538. Starting pitcher is the #1 factor.',
+    teams:['Arizona Diamondbacks','Atlanta Braves','Baltimore Orioles','Boston Red Sox','Chicago Cubs','Chicago White Sox','Cincinnati Reds','Cleveland Guardians','Colorado Rockies','Detroit Tigers','Houston Astros','Kansas City Royals','Los Angeles Angels','Los Angeles Dodgers','Miami Marlins','Milwaukee Brewers','Minnesota Twins','New York Mets','New York Yankees','Oakland Athletics','Philadelphia Phillies','Pittsburgh Pirates','San Diego Padres','San Francisco Giants','Seattle Mariners','St. Louis Cardinals','Tampa Bay Rays','Texas Rangers','Toronto Blue Jays','Washington Nationals'],
+    statsPrompt:(home,away)=>`You are a sports data assistant. Return ONLY a JSON object, no markdown, no explanation.
+
+Fetch the most current 2025 MLB season stats for: "${home}" and "${away}".
+
+Return exactly:
+{
+  "home": {
+    "name": "${home}",
+    "elo": <number ~1400-1700>,
+    "spERA": <number, likely starting pitcher ERA, e.g. 3.85>,
+    "wrcPlus": <number, team wRC+, 100=avg, e.g. 108>,
+    "bullpenERA": <number, bullpen ERA, e.g. 3.75>,
+    "record": "<W-L>"
+  },
+  "away": {
+    "name": "${away}",
+    "elo": <number>,
+    "spERA": <number>,
+    "wrcPlus": <number>,
+    "bullpenERA": <number>,
+    "record": "<W-L>"
+  },
+  "asOf": "<date>"
+}`,
+    computeMargin(d,hR,aR){
+      const eloC=(d.home.elo-d.away.elo)/100;
+      const hcaC=this.hca;
+      const restC=(hR-aR)*0.05;
+      const eraC=(d.away.spERA-d.home.spERA)*0.4;
+      const wrcC=(d.home.wrcPlus-d.away.wrcPlus)*0.03;
+      const bullC=(d.away.bullpenERA-d.home.bullpenERA)*0.2;
+      return{total:eloC+hcaC+restC+eraC+wrcC+bullC,factors:[
+        {name:'Elo Differential',val:eloC,note:'100 Elo ≈ 1 run'},
+        {name:'Home Park',val:hcaC,note:'+0.12 runs fixed'},
+        {name:'Rest Advantage',val:restC,note:'0.05 runs/day'},
+        {name:'Starting Pitcher',val:eraC,note:'ERA diff × 0.4'},
+        {name:'Offense (wRC+)',val:wrcC,note:'10 wRC+ ≈ 0.3 runs'},
+        {name:'Bullpen',val:bullC,note:'ERA diff × 0.2'},
+      ]};
+    },
+    renderStats(d){
+      const h=d.home,a=d.away;
+      return`
+        <div class="team-stat-block">
+          <div class="tsb-name">${h.name.split(' ').pop()} <span class="badge">HOME</span></div>
+          <div class="stat-pill-row">
+            <div class="stat-pill"><span class="sp-label">Elo</span><span class="sp-val">${h.elo}</span></div>
+            <div class="stat-pill"><span class="sp-label">SP ERA</span><span class="sp-val ${h.spERA<3.5?'good':h.spERA>4.5?'bad':''}">${h.spERA.toFixed(2)}</span></div>
+            <div class="stat-pill"><span class="sp-label">wRC+</span><span class="sp-val ${h.wrcPlus>110?'good':h.wrcPlus<90?'bad':''}">${h.wrcPlus}</span></div>
+            <div class="stat-pill"><span class="sp-label">Bullpen</span><span class="sp-val ${h.bullpenERA<3.5?'good':h.bullpenERA>4.5?'bad':''}">${h.bullpenERA.toFixed(2)}</span></div>
+            <div class="stat-pill"><span class="sp-label">Record</span><span class="sp-val">${h.record}</span></div>
+          </div>
+        </div>
+        <div class="team-stat-block">
+          <div class="tsb-name">${a.name.split(' ').pop()} <span class="badge">AWAY</span></div>
+          <div class="stat-pill-row">
+            <div class="stat-pill"><span class="sp-label">Elo</span><span class="sp-val">${a.elo}</span></div>
+            <div class="stat-pill"><span class="sp-label">SP ERA</span><span class="sp-val ${a.spERA<3.5?'good':a.spERA>4.5?'bad':''}">${a.spERA.toFixed(2)}</span></div>
+            <div class="stat-pill"><span class="sp-label">wRC+</span><span class="sp-val ${a.wrcPlus>110?'good':a.wrcPlus<90?'bad':''}">${a.wrcPlus}</span></div>
+            <div class="stat-pill"><span class="sp-label">Bullpen</span><span class="sp-val ${a.bullpenERA<3.5?'good':a.bullpenERA>4.5?'bad':''}">${a.bullpenERA.toFixed(2)}</span></div>
+            <div class="stat-pill"><span class="sp-label">Record</span><span class="sp-val">${a.record}</span></div>
+          </div>
+        </div>`;
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let sport='nba', homeRest=1, awayRest=1, liveData=null, deferredPrompt=null;
+
+// ═══════════════════════════════════════════════════════
+// SPORT SWITCH
+// ═══════════════════════════════════════════════════════
+function setSport(s){
+  sport=s; homeRest=1; awayRest=1; liveData=null;
+  const cfg=SPORTS[s];
+  document.querySelectorAll('.sp').forEach(p=>p.classList.toggle('active',p.dataset.sport===s));
+  document.documentElement.style.setProperty('--sc',cfg.color);
+  document.documentElement.style.setProperty('--sg',cfg.glow);
+  document.getElementById('heroEmoji').textContent=cfg.emoji;
+  document.getElementById('heroSport').textContent=cfg.label;
+  document.getElementById('heroSub').textContent=cfg.sub;
+  document.getElementById('sportContext').innerHTML=cfg.context;
+  document.getElementById('marketSpread').value=cfg.defaultSpread;
+  populateTeams();
+  buildRestToggles();
+  hideResults();
+}
+
+function populateTeams(){
+  const cfg=SPORTS[sport];
+  ['homeTeam','awayTeam'].forEach((id,i)=>{
+    const sel=document.getElementById(id);
+    sel.innerHTML=cfg.teams.map((t,ti)=>`<option value="${t}" ${ti===(i===0?0:1)?'selected':''}>${t}</option>`).join('');
+    if(i===1 && cfg.teams.length>1) sel.selectedIndex=1;
+  });
+}
+
+function buildRestToggles(){
+  const cfg=SPORTS[sport];
+  ['home','away'].forEach(team=>{
+    const wrap=document.getElementById(team+'RestToggle');
+    wrap.innerHTML=cfg.restOpts.map((r,i)=>`<button class="tb ${i===1?'active':''}" data-val="${i}" onclick="setRest('${team}',${i})">${r}</button>`).join('');
+  });
+}
+
+function onTeamChange(){ liveData=null; hideResults(); }
+
+function setRest(team,val){
+  if(team==='home') homeRest=val; else awayRest=val;
+  document.querySelectorAll(`#${team}RestToggle .tb`).forEach(b=>b.classList.toggle('active',parseInt(b.dataset.val)===val));
+}
+
+function hideResults(){
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('statsPreview').classList.remove('visible');
+  document.getElementById('matchupCard').style.display='none';
+  document.getElementById('calcBtn').style.display='none';
+  document.getElementById('fetchError').classList.remove('visible');
+}
+
+// ═══════════════════════════════════════════════════════
+// AI STATS FETCH
+// ═══════════════════════════════════════════════════════
+async function fetchStats(){
+  const home=document.getElementById('homeTeam').value;
+  const away=document.getElementById('awayTeam').value;
+  if(home===away){showError('Please select two different teams.');return;}
+
+  setFetchLoading(true);
+  document.getElementById('fetchError').classList.remove('visible');
+  hideResults();
+
+  const cfg=SPORTS[sport];
+  const prompt=cfg.statsPrompt(home,away);
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+
+    const raw=await res.json();
+
+    // Extract text from response
+    let text='';
+    if(raw.content){
+      for(const block of raw.content){
+        if(block.type==='text') text+=block.text;
+      }
+    }
+
+    // Parse JSON
+    const cleaned=text.replace(/```json|```/g,'').trim();
+    const jsonMatch=cleaned.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('Could not parse stats response');
+    const data=JSON.parse(jsonMatch[0]);
+
+    // Validate
+    if(!data.home||!data.away) throw new Error('Invalid data structure returned');
+
+    liveData=data;
+    renderStatsPreview(data);
+    document.getElementById('matchupCard').style.display='block';
+    document.getElementById('calcBtn').style.display='block';
+
+  }catch(e){
+    showError(`Could not fetch stats: ${e.message}. Check your connection and try again.`);
+    console.error(e);
+  }finally{
+    setFetchLoading(false);
+  }
+}
+
+function setFetchLoading(on){
+  const btn=document.getElementById('fetchBtn');
+  const icon=document.getElementById('fetchIcon');
+  const lbl=document.getElementById('fetchLabel');
+  btn.disabled=on;
+  if(on){
+    icon.outerHTML='<div class="spinner" id="fetchIcon"></div>';
+    lbl.textContent='Fetching live stats...';
+  }else{
+    document.getElementById('fetchIcon').outerHTML='<span id="fetchIcon">⚡</span>';
+    lbl.textContent='Fetch Live Stats via AI';
+  }
+}
+
+function renderStatsPreview(data){
+  const cfg=SPORTS[sport];
+  document.getElementById('statsRow').innerHTML=cfg.renderStats(data);
+  document.getElementById('statsDate').textContent=data.asOf||'Current season';
+  document.getElementById('statsFreshness').textContent='✓ Auto-filled';
+  document.getElementById('statsPreview').classList.add('visible');
+}
+
+function showError(msg){
+  const el=document.getElementById('fetchError');
+  el.textContent=msg;
+  el.classList.add('visible');
+}
+
+// ═══════════════════════════════════════════════════════
+// MODEL MATH
+// ═══════════════════════════════════════════════════════
+function coverProb(diff,sd){return 1/(1+Math.exp(-1.7*diff/sd))}
+function vigAdjProb(line){const r=line<0?(-line)/(-line+100):100/(line+100),o=110/210;return r/(r+o)}
+function kelly(p,line){const dec=line<0?1+100/-line:1+line/100,b=dec-1;return Math.max(0,(b*p-(1-p))/b)}
+function fmtV(n,d=2){const v=parseFloat(n).toFixed(d);return parseFloat(v)>=0?'+'+v:''+v}
+
+function calculate(){
+  if(!liveData){showError('Please fetch live stats first.');return;}
+  const cfg=SPORTS[sport];
+  const ms=parseFloat(document.getElementById('marketSpread').value);
+  const ml=parseFloat(document.getElementById('marketLine').value);
+  const {total:projMargin,factors}=cfg.computeMargin(liveData,homeRest,awayRest);
+  const modelSpread=-projMargin;
+  const hCP=coverProb(projMargin-(-ms),cfg.stdDev);
+  const mP=vigAdjProb(ml);
+  const edge=hCP-mP;
+  const hK=kelly(hCP,ml)/2;
+
+  let verdict,cls;
+  if(Math.abs(edge)<.03){verdict='No Clear Edge';cls='neutral'}
+  else if(edge>.03){verdict='Value on Home Cover';cls='value'}
+  else{verdict='Value on Away Cover';cls='novalue'}
+
+  const ec=cls==='value'?'#00e676':cls==='novalue'?'#ff4545':'#ffc107';
+  document.getElementById('verdictBanner').className='verdict '+cls;
+  document.getElementById('verdictMain').textContent=verdict;
+  document.getElementById('verdictEdge').style.color=ec;
+  document.getElementById('verdictEdge').textContent=(edge>=0?'+':'')+(edge*100).toFixed(1)+'%';
+
+  const d=cfg.stdDev<5?2:1;
+  document.getElementById('sSpread').textContent=modelSpread.toFixed(d);
+  document.getElementById('sMargin').textContent=fmtV(projMargin,d);
+  document.getElementById('sKelly').textContent=(hK*100).toFixed(1)+'%';
+
+  const hP2=(hCP*100).toFixed(1),mP2=(mP*100).toFixed(1);
+  document.getElementById('pModel').textContent=hP2+'%';
+  document.getElementById('pMarket').textContent=mP2+'%';
+  document.getElementById('bModel').style.width=hP2+'%';
+  document.getElementById('bMarket').style.width=mP2+'%';
+
+  document.getElementById('factorBody').innerHTML=factors.map(f=>`
+    <tr>
+      <td>${f.name}</td>
+      <td class="mono">${fmtV(f.val,d)}</td>
+      <td style="color:var(--muted);font-size:10px">${f.note}</td>
+    </tr>`).join('');
+
+  const res=document.getElementById('results');
+  res.classList.add('visible');
+  setTimeout(()=>res.scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+// ═══════════════════════════════════════════════════════
+// PWA
+// ═══════════════════════════════════════════════════════
+if('serviceWorker' in navigator){
+  const sw=`const C='spread-ai-v1';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll([location.href])));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim();});self.addEventListener('fetch',e=>{if(e.request.url.includes('anthropic.com'))return;e.respondWith(caches.match(e.request).then(ca=>{if(ca)return ca;return fetch(e.request).then(r=>{caches.open(C).then(c=>c.put(e.request,r.clone()));return r;}).catch(()=>ca);}));});`;
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});
+}
+const mLink=document.createElement('link');
+mLink.rel='manifest';
+mLink.href=URL.createObjectURL(new Blob([JSON.stringify({name:'Spread Value Model',short_name:'Spread AI',start_url:location.href,display:'standalone',background_color:'#07090f',theme_color:'#07090f',icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%2307090f'/%3E%3Ctext x='256' y='340' font-size='260' text-anchor='middle'%3E🏆%3C/text%3E%3C/svg%3E",sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}]})],{type:'application/json'}));
+document.head.appendChild(mLink);
+
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installToast').classList.add('visible');});
+document.getElementById('btnInstall').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt=null;dismissInstall();});
+function dismissInstall(){document.getElementById('installToast').classList.remove('visible')}
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+if(isIOS&&!window.navigator.standalone){const t=document.getElementById('installToast');t.classList.add('visible','ios-only');document.getElementById('btnInstall').style.display='none';}
+window.addEventListener('online',()=>document.body.classList.remove('offline'));
+window.addEventListener('offline',()=>document.body.classList.add('offline'));
+if(!navigator.onLine)document.body.classList.add('offline');
+
+// ── Init ──
+setSport('nba');
+</script>
+</body>
+</html>
